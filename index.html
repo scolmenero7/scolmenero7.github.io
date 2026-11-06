@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Mi Gráfico">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="theme-color" content="#131722">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="icon" href="icon.png">
+<title>Mi Gráfico</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#131722;color:#d1d4dc;font:14px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;overflow:hidden}
+body{display:flex;flex-direction:column}
+header{background:#1e222d;border-bottom:1px solid #2a2e39;padding:8px 8px 6px;flex:none}
+.row1{display:flex;gap:8px;align-items:center}
+.seg{display:flex;background:#131722;border-radius:8px;padding:2px;flex:none}
+.seg button{background:none;border:0;color:#9598a1;padding:6px 10px;border-radius:6px;font:inherit;font-size:13px}
+.seg button.on{background:#2962ff;color:#fff}
+#sym{flex:1;min-width:0;background:#131722;border:1px solid #2a2e39;color:#fff;border-radius:8px;padding:7px 10px;font:inherit;font-weight:600;text-transform:uppercase}
+#gear{background:none;border:0;color:#d1d4dc;font-size:22px;padding:0 4px;flex:none}
+#status{font-size:11px;white-space:nowrap;flex:none}
+#status.ok{color:#26a69a}#status.wait{color:#f0b90b}#status.err{color:#ef5350}
+.tfs{display:flex;gap:4px;margin-top:6px;overflow-x:auto;scrollbar-width:none}
+.tfs::-webkit-scrollbar{display:none}
+.tfs button{flex:1;min-width:44px;background:#131722;border:1px solid #2a2e39;color:#9598a1;border-radius:6px;padding:6px 0;font:inherit;font-size:13px;font-weight:600}
+.tfs button.on{background:#2962ff;border-color:#2962ff;color:#fff}
+main{position:relative;flex:1;min-height:0}
+canvas{position:absolute;left:0;top:0;width:100%;height:100%;touch-action:none;display:block}
+#legend{position:absolute;left:8px;top:6px;right:72px;font-size:11.5px;line-height:1.5;pointer-events:none;text-shadow:0 0 3px #131722}
+#legend b{color:#fff}
+#legend .ohlc span{margin-right:6px}
+#legend .inds span{margin-right:8px;white-space:nowrap}
+#msg{position:absolute;left:50%;top:45%;transform:translate(-50%,-50%);text-align:center;color:#9598a1;max-width:85%;pointer-events:none}
+#tools{position:absolute;left:6px;top:96px;display:flex;flex-direction:column;gap:6px}
+#tools button{width:40px;height:40px;border-radius:9px;background:rgba(30,34,45,.92);border:1px solid #2a2e39;color:#d1d4dc;font:600 15px -apple-system,sans-serif;display:flex;align-items:center;justify-content:center}
+#tools button.on{background:#2962ff;border-color:#2962ff;color:#fff}
+#tools button.off{opacity:.45}
+#hint{position:absolute;left:50%;top:78px;transform:translateX(-50%);background:#2962ff;color:#fff;font-size:12.5px;padding:6px 12px;border-radius:14px;max-width:92%;text-align:center;pointer-events:none;display:none}
+#autoBtn{position:absolute;right:76px;bottom:66px;background:#2a2e39;color:#d1d4dc;border:0;border-radius:6px;padding:6px 10px;font:inherit;font-size:12px;display:none}
+#latest{position:absolute;right:76px;bottom:32px;background:#2a2e39;color:#d1d4dc;border:0;border-radius:6px;padding:6px 10px;font:inherit;font-size:12px;display:none}
+#modal,#lineModal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;z-index:2147483647}
+#modal[hidden],#lineModal[hidden]{display:none}
+.sheet textarea{width:100%;height:70px;margin-top:8px;background:#131722;border:1px solid #2a2e39;color:#d1d4dc;border-radius:6px;padding:6px;font:12px monospace}
+.sheet .fld{display:block;margin-top:12px;font-size:13px;color:#9598a1}
+.sheet .fld input{display:block;width:100%;margin-top:5px;background:#131722;border:1px solid #2a2e39;color:#fff;border-radius:6px;padding:8px;font:inherit;font-size:16px}
+.sheet{background:#1e222d;width:100%;max-width:520px;max-height:78vh;overflow:auto;border-radius:0 0 14px 14px;padding:calc(14px + env(safe-area-inset-top)) 14px 16px}
+.sheet h3{font-size:16px;color:#fff;margin:4px 0 10px}
+.ind{display:flex;align-items:center;gap:6px;padding:6px 0;border-bottom:1px solid #2a2e39}
+.ind input[type=checkbox]{width:20px;height:20px;accent-color:#2962ff}
+.ind select,.ind input[type=number],.sheet input[type=text]{background:#131722;border:1px solid #2a2e39;color:#fff;border-radius:6px;padding:6px;font:inherit}
+.ind input[type=number]{width:64px}
+.ind input[type=color]{width:38px;height:30px;border:0;background:none;padding:0}
+.ind .del{background:none;border:0;color:#ef5350;font-size:18px;margin-left:auto;padding:0 6px}
+.btns{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.btns button{flex:1;background:#2a2e39;color:#d1d4dc;border:0;border-radius:8px;padding:10px;font:inherit}
+.btns button.primary{background:#2962ff;color:#fff}
+.sheet label{display:block;margin-top:16px;font-size:13px;color:#9598a1}
+.sheet input[type=text]{width:100%;margin-top:6px}
+.hint{font-size:12px;color:#787b86;margin-top:6px;line-height:1.4}
+</style>
+</head>
+<body>
+<header>
+  <div class="row1">
+    <div class="seg" id="mkt"><button data-m="crypto">Cripto</button><button data-m="stock">Acciones</button></div>
+    <input id="sym" list="syms" autocomplete="off" autocapitalize="characters" spellcheck="false">
+    <datalist id="syms"></datalist>
+    <span id="status"></span>
+    <button id="gear" aria-label="Ajustes">⚙︎</button>
+  </div>
+  <div class="tfs" id="tfs"></div>
+</header>
+<main id="wrap">
+  <canvas id="cv"></canvas>
+  <div id="legend"></div>
+  <div id="msg"></div>
+  <button id="latest">» Ir al último</button>
+  <button id="autoBtn">Auto precio</button>
+  <div id="hint"></div>
+  <div id="tools">
+    <button id="tEye" title="Mostrar/ocultar valores de medias"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+    <button id="tFx" title="Indicadores">ƒx</button>
+    <button id="tH" title="Línea horizontal"><svg width="20" height="20" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><line x1="2" y1="12" x2="22" y2="12"/></svg></button>
+    <button id="tT" title="Línea inclinada"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><line x1="4" y1="20" x2="20" y2="4"/><circle cx="4" cy="20" r="2"/><circle cx="20" cy="4" r="2"/></svg></button>
+    <button id="tEdit" title="Escribir coordenadas exactas" style="display:none"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 20h4L19 9l-4-4L4 16v4z"/></svg></button>
+    <button id="tDel" title="Borrar línea"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14"/></svg></button>
+  </div>
+</main>
+
+<div id="modal" hidden>
+  <div class="sheet">
+    <h3>Medias móviles</h3>
+    <div id="indList"></div>
+    <div class="btns">
+      <button id="addInd">+ Agregar media</button>
+      <button id="resetInd">Restaurar mis medias</button>
+    </div>
+    <h3 style="margin-top:18px">Indicadores</h3>
+    <div id="extList">
+      <div class="ind"><input type="checkbox" data-x="vol.on"> <span style="flex:1">Volumen</span></div>
+      <div class="ind"><input type="checkbox" data-x="rsi.on"> <span style="flex:1">RSI</span> periodo <input type="number" min="2" max="200" data-x="rsi.p"></div>
+      <div class="ind"><input type="checkbox" data-x="bb.on"> <span style="flex:1">Bollinger</span> <input type="number" min="2" max="500" data-x="bb.p"> × <input type="number" min="0.5" max="5" step="0.5" data-x="bb.m" style="width:52px"></div>
+      <div class="ind"><input type="checkbox" data-x="atr.on"> <span style="flex:1">ATR (volatilidad)</span> periodo <input type="number" min="2" max="200" data-x="atr.p"></div>
+    </div>
+    <label>Fuente para cripto
+      <select id="srcSel" style="width:100%;margin-top:6px;background:#131722;border:1px solid #2a2e39;color:#fff;border-radius:6px;padding:8px;font:inherit">
+        <option value="bitstamp">Bitstamp (igual que BITSTAMP en TradingView)</option>
+        <option value="binance">Binance</option>
+      </select>
+    </label>
+    <label>API key de Twelve Data (solo para acciones)
+      <input type="text" id="tdKey" placeholder="Pega aquí tu clave gratuita" autocomplete="off" spellcheck="false">
+    </label>
+    <p class="hint">Cripto (BTC, ETH, etc.) no necesita clave y va en vivo. Para acciones crea una cuenta gratis en twelvedata.com y copia tu API key.</p>
+    <label>Respaldo de tus líneas y medias</label>
+    <div class="btns"><button id="bkCopy">Copiar respaldo</button><button id="bkLoad">Restaurar respaldo</button></div>
+    <textarea id="bkText" placeholder="Aquí aparece tu respaldo, o pega uno para restaurarlo" spellcheck="false"></textarea>
+    <p class="hint" id="bkMsg">Guárdalo en tus Notas de vez en cuando. Si un día se borran tus líneas, lo pegas aquí y tocas Restaurar.</p>
+    <div class="btns"><button id="closeModal" class="primary">Guardar</button></div>
+  </div>
+</div>
+
+<div id="lineModal" hidden>
+  <div class="sheet">
+    <h3 id="lmTitle">Editar línea</h3>
+    <div id="lmFields"></div>
+    <div class="btns"><button id="lmCancel">Cancelar</button><button id="lmOk" class="primary">Aplicar</button></div>
+  </div>
+</div>
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const H = 3600e3, D = 24 * H, WK = 7 * D;
+
+// ---------- Configuración ----------
+const DEFAULT_INDS = [
+  { on: true, type: 'EMA', p: 5,   color: '#2962ff', w: 1 },
+  { on: true, type: 'EMA', p: 9,   color: '#f23645', w: 1 },
+  { on: true, type: 'EMA', p: 21,  color: '#ff9800', w: 1 },
+  { on: true, type: 'EMA', p: 34,  color: '#4caf50', w: 1 },
+  { on: true, type: 'EMA', p: 50,  color: '#ffffff', w: 2 },
+  { on: true, type: 'EMA', p: 100, color: '#fdd835', w: 1 },
+  { on: true, type: 'SMA', p: 200, color: '#9c27b0', w: 1 },
+];
+// bin = intervalo de Binance; td = intervalo de Twelve Data; *Agg = agrupar velas
+const TFS = [
+  { id: '1h',  label: '1h',  bin: '1h',  td: '1h',     bs: 3600,  dur: H },
+  { id: '2h',  label: '2h',  bin: '2h',  td: '2h',     bs: 7200,  dur: 2 * H },
+  { id: '4h',  label: '4h',  bin: '4h',  td: '4h',     bs: 14400, dur: 4 * H },
+  { id: '8h',  label: '8h',  bin: '8h',  td: '1h', tdAgg: 8 * H,  bs: 14400, bsAgg: 8 * H, dur: 8 * H },
+  { id: '12h', label: '12h', bin: '12h', td: '1h', tdAgg: 12 * H, bs: 43200, dur: 12 * H },
+  { id: '1D',  label: '1D',  bin: '1d',  td: '1day',   bs: 86400, dur: D },
+  { id: '2D',  label: '2D',  bin: '1d', binAgg: 2 * D, td: '1day', tdAgg: 2 * D, bs: 86400, bsAgg: 2 * D, dur: 2 * D },
+  { id: '1W',  label: '1S',  bin: '1w',  td: '1week',  bs: 86400, bsAgg: 'w', dur: WK },
+  { id: '2W',  label: '2S',  bin: '1w', binAgg: '2w', td: '1week', tdAgg: '2w', bs: 86400, bsAgg: '2w', dur: 2 * WK },
+  { id: '1M',  label: '1M',  bin: '1M',  td: '1month', bs: 86400, bsAgg: 'M', dur: null },
+  { id: '3M',  label: '3M',  bin: '1M', binAgg: 'Q', td: '1month', tdAgg: 'Q', bs: 86400, bsAgg: 'Q', dur: null },
+];
+const SYMS = {
+  crypto: ['BTCUSD', 'ETHUSD', 'SOLUSD', 'XRPUSD', 'DOGEUSD', 'ADAUSD', 'LTCUSD'],
+  stock: ['AAPL', 'TSLA', 'NVDA', 'MSFT', 'AMZN', 'GOOGL', 'META', 'SPY', 'QQQ'],
+};
+const BIN_REST = ['https://api.binance.com', 'https://data-api.binance.vision'];
+const BIN_WS = ['wss://stream.binance.com:9443/ws/', 'wss://data-stream.binance.vision/ws/'];
+
+// ---------- Estado guardado ----------
+const DEFAULT_EXT = { vol: { on: true }, rsi: { on: true, p: 14 }, bb: { on: false, p: 20, m: 2 }, atr: { on: false, p: 14 } };
+let S = { market: 'crypto', src: 'bitstamp', symCrypto: 'BTCUSD', symStock: 'AAPL', tf: '4h', inds: DEFAULT_INDS, tdKey: '' };
+try { const j = JSON.parse(localStorage.getItem('miGrafico') || 'null'); if (j) S = Object.assign(S, j); } catch (e) {}
+const save = () => { try { localStorage.setItem('miGrafico', JSON.stringify(S)); } catch (e) {} };
+const curTF = () => TFS.find(t => t.id === S.tf) || TFS[1];
+const curSym = () => S.market === 'crypto' ? S.symCrypto : S.symStock;
+const binSym = () => { const v = S.symCrypto.toUpperCase(); return /USD$/.test(v) ? v + 'T' : v; };
+const bsPair = () => S.symCrypto.toUpperCase().replace(/USDT$/, 'USD').toLowerCase();
+let activeSrc = 'bitstamp';
+
+// ---------- Datos ----------
+let base = [], candles = [], indVals = [];
+let loadTok = 0;
+const live = { ws: null, retry: null, poll: null };
+
+function stopLive() {
+  if (live.ws) { live.ws.onclose = null; try { live.ws.close(); } catch (e) {} live.ws = null; }
+  clearTimeout(live.retry); clearTimeout(live.poll);
+}
+function setStatus(cls, txt) { const el = $('#status'); el.className = cls; el.textContent = '● ' + txt; }
+function setMsg(t) { $('#msg').textContent = t || ''; }
+
+function bucket(t, agg) {
+  if (agg === '2w') { const e = 4 * D; return Math.floor((t - e) / (2 * WK)) * 2 * WK + e; } // lunes
+  if (agg === 'w') { const e = 4 * D; return Math.floor((t - e) / WK) * WK + e; }
+  if (agg === 'Q') { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), Math.floor(d.getUTCMonth() / 3) * 3, 1); }
+  if (agg === 'M') { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); }
+  return Math.floor(t / agg) * agg;
+}
+function aggregate(arr, agg) {
+  const out = [];
+  for (const c of arr) {
+    const k = bucket(c.t, agg), l = out[out.length - 1];
+    if (l && l.t === k) { l.h = Math.max(l.h, c.h); l.l = Math.min(l.l, c.l); l.c = c.c; l.v += c.v; }
+    else out.push({ t: k, o: c.o, h: c.h, l: c.l, c: c.c, v: c.v });
+  }
+  return out;
+}
+function upsert(c) {
+  const n = base.length, last = base[n - 1];
+  if (!last || c.t > last.t) base.push(c);
+  else if (c.t === last.t) base[n - 1] = c;
+  else { for (let i = n - 1; i >= 0; i--) if (base[i].t === c.t) { base[i] = c; break; } }
+}
+function sma(src, p) {
+  const out = new Array(src.length).fill(null); let s = 0;
+  for (let i = 0; i < src.length; i++) { s += src[i]; if (i >= p) s -= src[i - p]; if (i >= p - 1) out[i] = s / p; }
+  return out;
+}
+function ema(src, p) {
+  const out = new Array(src.length).fill(null), a = 2 / (p + 1); let e = 0, s = 0;
+  for (let i = 0; i < src.length; i++) {
+    if (i < p) { s += src[i]; if (i === p - 1) { e = s / p; out[i] = e; } }
+    else { e = a * src[i] + (1 - a) * e; out[i] = e; }
+  }
+  return out;
+}
+let ext = {};
+function rma(src, p) { // media de Wilder (la que usa TradingView en RSI y ATR)
+  const out = new Array(src.length).fill(null); let r = null, s = 0;
+  for (let i = 0; i < src.length; i++) {
+    if (i < p) { s += src[i]; if (i === p - 1) { r = s / p; out[i] = r; } }
+    else { r = (r * (p - 1) + src[i]) / p; out[i] = r; }
+  }
+  return out;
+}
+function computeInds() {
+  const cl = candles.map(c => c.c), E = S.ext, n = candles.length;
+  indVals = S.inds.map(d => (!d.on || !(d.p > 0)) ? null : (d.type === 'SMA' ? sma(cl, d.p) : ema(cl, d.p)));
+  ext = {};
+  if (E.rsi.on && E.rsi.p > 0 && n > 1) {
+    const up = [0], dn = [0];
+    for (let i = 1; i < n; i++) { const d = cl[i] - cl[i - 1]; up.push(Math.max(d, 0)); dn.push(Math.max(-d, 0)); }
+    const au = rma(up.slice(1), E.rsi.p), ad = rma(dn.slice(1), E.rsi.p);
+    ext.rsi = [null].concat(au.map((u, i) => u == null ? null : ad[i] === 0 ? 100 : u === 0 ? 0 : 100 - 100 / (1 + u / ad[i])));
+  }
+  if (E.atr.on && E.atr.p > 0 && n > 0) {
+    const tr = candles.map((c, i) => i === 0 ? c.h - c.l : Math.max(c.h - c.l, Math.abs(c.h - candles[i - 1].c), Math.abs(c.l - candles[i - 1].c)));
+    ext.atr = rma(tr, E.atr.p);
+  }
+  if (E.bb.on && E.bb.p > 1) {
+    const p = E.bb.p, m = sma(cl, p), u = new Array(n).fill(null), l = new Array(n).fill(null);
+    for (let i = p - 1; i < n; i++) {
+      let v = 0; for (let k = i - p + 1; k <= i; k++) v += (cl[k] - m[i]) ** 2;
+      const sd = Math.sqrt(v / p); u[i] = m[i] + E.bb.m * sd; l[i] = m[i] - E.bb.m * sd;
+    }
+    ext.bb = { m, u, l };
+  }
+}
+function rebuild(reset) {
+  const tf = curTF(), agg = S.market === 'crypto' ? (activeSrc === 'bitstamp' ? tf.bsAgg : tf.binAgg) : tf.tdAgg;
+  candles = agg ? aggregate(base, agg) : base.slice();
+  computeInds();
+  if (reset) { view.scroll = 0; view.auto = true; cross = null; sel = null; pendingA = null; setMsg(candles.length ? '' : 'Sin datos'); }
+  req();
+}
+
+async function loadData() {
+  const tok = ++loadTok;
+  tool = null; pendingA = null; sel = null;
+  stopLive(); base = []; candles = []; indVals = []; req();
+  setMsg('Cargando ' + curSym() + '…'); setStatus('wait', 'Cargando');
+  try {
+    if (S.market !== 'crypto') await loadTwelve(tok);
+    else if (S.src === 'binance') { activeSrc = 'binance'; await loadBinance(tok); }
+    else {
+      try { activeSrc = 'bitstamp'; await loadBitstamp(tok); }
+      catch (e) { if (tok !== loadTok || e.fatal) throw e; stopLive(); activeSrc = 'binance'; await loadBinance(tok); }
+    }
+  } catch (e) {
+    if (tok !== loadTok) return;
+    let m = e && e.message ? e.message : String(e);
+    if (/Failed to fetch|NetworkError|Load failed/i.test(m)) m = 'No se pudo conectar. Revisa tu internet (o abre este archivo en Chrome/Safari, no dentro de otra app).';
+    setMsg('Error: ' + m); setStatus('err', 'Error');
+  }
+}
+
+// --- Binance (cripto, en vivo) ---
+async function binFetch(path) {
+  let last;
+  for (const b of BIN_REST) {
+    try {
+      const r = await fetch(b + path);
+      const j = await r.json();
+      if (!r.ok) { const err = new Error(j.msg || ('HTTP ' + r.status)); err.fatal = r.status === 400; throw err; }
+      return j;
+    } catch (e) { last = e; if (e.fatal) break; }
+  }
+  if (last && /Invalid symbol/i.test(last.message)) last.message = 'Ese símbolo no existe en Binance (ej. BTCUSDT)';
+  throw last;
+}
+const mapK = k => ({ t: k[0], o: +k[1], h: +k[2], l: +k[3], c: +k[4], v: +k[5] });
+async function loadBinance(tok) {
+  const tf = curTF(), sym = binSym();
+  const raw = await binFetch(`/api/v3/klines?symbol=${sym}&interval=${tf.bin}&limit=1000`);
+  if (tok !== loadTok) return;
+  base = raw.map(mapK);
+  rebuild(true);
+  openWS(tok, sym.toLowerCase() + '@kline_' + tf.bin, 0, sym, tf);
+}
+function openWS(tok, stream, i, sym, tf) {
+  if (tok !== loadTok) return;
+  let ws, opened = false;
+  try { ws = new WebSocket(BIN_WS[i % BIN_WS.length] + stream); } catch (e) { setStatus('err', 'Sin vivo'); return; }
+  live.ws = ws;
+  ws.onopen = () => {
+    opened = true; setStatus('ok', 'En vivo');
+    // rellena huecos si estuvo desconectado
+    binFetch(`/api/v3/klines?symbol=${sym}&interval=${tf.bin}&limit=10`).then(r => {
+      if (tok !== loadTok) return; r.map(mapK).forEach(upsert); rebuild(false);
+    }).catch(() => {});
+  };
+  ws.onmessage = ev => {
+    try {
+      const k = JSON.parse(ev.data).k; if (!k) return;
+      upsert({ t: k.t, o: +k.o, h: +k.h, l: +k.l, c: +k.c, v: +k.v }); rebuild(false);
+    } catch (e) {}
+  };
+  ws.onclose = () => {
+    if (tok !== loadTok) return;
+    setStatus('wait', 'Reconectando');
+    live.retry = setTimeout(() => openWS(tok, stream, opened ? i : i + 1, sym, tf), 2000);
+  };
+}
+
+// --- Bitstamp (cripto, en vivo; igual que BITSTAMP en TradingView) ---
+async function bsFetch(pair, step, limit, end) {
+  const u = `https://www.bitstamp.net/api/v2/ohlc/${pair}/?step=${step}&limit=${limit}` + (end ? `&end=${end}` : '');
+  const r = await fetch(u);
+  let j = null; try { j = await r.json(); } catch (e) {}
+  if (!r.ok || !j || !j.data || !j.data.ohlc) {
+    const e = new Error(r.status === 404 ? 'Ese par no existe en Bitstamp (ej. BTCUSD)' : 'Bitstamp no devolvió datos'); e.fatal = r.status === 404; throw e;
+  }
+  return j.data.ohlc.map(k => ({ t: +k.timestamp * 1000, o: +k.open, h: +k.high, l: +k.low, c: +k.close, v: +k.volume }));
+}
+async function loadBitstamp(tok) {
+  const tf = curTF(), pair = bsPair(), step = tf.bs, pages = 5;
+  const m = new Map(); let end = null;
+  for (let k = 0; k < pages; k++) {
+    const rows = await bsFetch(pair, step, 1000, end);
+    if (tok !== loadTok) return;
+    if (!rows.length) break;
+    const before = m.size; rows.forEach(c => m.set(c.t, c));
+    if (rows.length < 1000 || m.size === before) break;
+    end = Math.floor(Math.min(...rows.map(c => c.t)) / 1000) - 1;
+  }
+  base = [...m.values()].sort((a, b) => a.t - b.t);
+  if (!base.length) throw Object.assign(new Error('Sin datos de Bitstamp'), { fatal: true });
+  rebuild(true);
+  openBsWS(tok, pair, step * 1000);
+  const refresh = () => {
+    live.poll = setTimeout(() => {
+      if (tok !== loadTok) return;
+      bsFetch(pair, step, 3).then(r => { if (tok !== loadTok) return; r.forEach(upsert); rebuild(false); }).catch(() => {}).finally(refresh);
+    }, 60e3);
+  };
+  refresh();
+}
+function openBsWS(tok, pair, stepMs) {
+  if (tok !== loadTok) return;
+  let ws;
+  try { ws = new WebSocket('wss://ws.bitstamp.net'); } catch (e) { setStatus('err', 'Sin vivo'); return; }
+  live.ws = ws;
+  ws.onopen = () => { ws.send(JSON.stringify({ event: 'bts:subscribe', data: { channel: 'live_trades_' + pair } })); setStatus('ok', 'En vivo'); };
+  ws.onmessage = ev => {
+    try {
+      const msg = JSON.parse(ev.data);
+      if (msg.event === 'bts:request_reconnect') { ws.close(); return; }
+      if (msg.event !== 'trade' || !msg.data) return;
+      const d = msg.data, p = +d.price, a = +d.amount || 0;
+      const t = d.microtimestamp ? Math.floor(+d.microtimestamp / 1000) : +d.timestamp * 1000;
+      if (!isFinite(p) || !isFinite(t)) return;
+      const bt = Math.floor(t / stepMs) * stepMs, last = base[base.length - 1];
+      if (!last) return;
+      if (bt === last.t) { last.h = Math.max(last.h, p); last.l = Math.min(last.l, p); last.c = p; last.v += a; }
+      else if (bt > last.t) base.push({ t: bt, o: p, h: p, l: p, c: p, v: a });
+      else return;
+      rebuild(false);
+    } catch (e) {}
+  };
+  ws.onclose = () => {
+    if (tok !== loadTok) return;
+    setStatus('wait', 'Reconectando');
+    live.retry = setTimeout(() => openBsWS(tok, pair, stepMs), 2000);
+  };
+}
+
+// --- Twelve Data (acciones, cada minuto) ---
+function parseT(s) { return Date.parse(s.length <= 10 ? s + 'T00:00:00Z' : s.replace(' ', 'T') + 'Z'); }
+async function tdFetch(sym, interval, size) {
+  if (!S.tdKey) throw new Error('Para acciones falta tu API key gratuita de Twelve Data. Toca ⚙︎ para pegarla.');
+  const u = `https://api.twelvedata.com/time_series?symbol=${encodeURIComponent(sym)}&interval=${interval}&outputsize=${size}&timezone=UTC&order=ASC&apikey=${encodeURIComponent(S.tdKey.trim())}`;
+  const r = await fetch(u); const j = await r.json();
+  if (j.status === 'error' || !j.values) throw new Error(j.message || 'Twelve Data no devolvió datos');
+  return j.values.map(v => ({ t: parseT(v.datetime), o: +v.open, h: +v.high, l: +v.low, c: +v.close, v: +(v.volume || 0) }))
+    .filter(c => isFinite(c.t)).sort((a, b) => a.t - b.t);
+}
+function marketOpenNow() { // NYSE aprox. lun-vie 13:00–21:00 UTC
+  const d = new Date(), wd = d.getUTCDay(), h = d.getUTCHours();
+  return wd >= 1 && wd <= 5 && h >= 13 && h < 21;
+}
+async function loadTwelve(tok) {
+  const tf = curTF(), sym = curSym();
+  base = await tdFetch(sym, tf.td, 5000);
+  if (tok !== loadTok) return;
+  if (!base.length) throw new Error('Sin datos para ' + sym);
+  rebuild(true);
+  const schedule = () => {
+    const open = marketOpenNow();
+    setStatus('ok', open ? 'Cada 1 min' : 'Mercado cerrado');
+    live.poll = setTimeout(tick, open ? 60e3 : 15 * 60e3);
+  };
+  const tick = async () => {
+    if (tok !== loadTok) return;
+    if (document.hidden) return schedule();
+    try { const rows = await tdFetch(sym, tf.td, 3); if (tok !== loadTok) return; rows.forEach(upsert); rebuild(false); schedule(); }
+    catch (e) { setStatus('err', 'Error al actualizar'); live.poll = setTimeout(tick, 120e3); }
+  };
+  schedule();
+}
+
+// ---------- Gráfico ----------
+const wrap = $('#wrap'), cv = $('#cv'), ctx = cv.getContext('2d'), legend = $('#legend'), latestBtn = $('#latest');
+const AX = 70, AY = 24, PAD_R = 6, UP = '#26a69a', DN = '#ef5350';
+let Wd = 0, Ht = 0, dpr = 1, rq = false;
+const view = { barW: 8, scroll: 0, auto: true, lo: 0, hi: 1 };
+let sc = null;
+let cross = null;
+
+function req() { if (!rq) { rq = true; requestAnimationFrame(draw); } }
+function resize() {
+  const r = wrap.getBoundingClientRect(); dpr = window.devicePixelRatio || 1;
+  Wd = r.width; Ht = r.height; cv.width = Math.round(Wd * dpr); cv.height = Math.round(Ht * dpr); req();
+}
+function panes() { const a = []; if (S.ext.rsi.on) a.push('rsi'); if (S.ext.atr.on) a.push('atr'); return a; }
+function geom() {
+  const full = Ht - AY, pl = panes(), paneH = Math.max(70, Math.round(full * 0.17));
+  const pw = Wd - AX, ph = full - pl.length * paneH, n = candles.length;
+  const maxS = n - 6 + PAD_R, minS = -(pw / view.barW) * 0.6;
+  view.scroll = Math.min(maxS, Math.max(minS, view.scroll));
+  return { pw, ph, n, full, pl, paneH, right: n - 1 + PAD_R - view.scroll };
+}
+const xOf = (i, g) => g.pw - (g.right - i + 0.5) * view.barW;
+const idxAtF = (x, g) => g.right + 0.5 - (g.pw - x) / view.barW;
+function zoomAt(x, nb) {
+  nb = Math.max(0.25, Math.min(60, nb));
+  const g = geom(), idx = idxAtF(x, g);
+  view.barW = nb;
+  view.scroll = g.n - 1 + PAD_R - (idx - 0.5 + (g.pw - x) / nb);
+  req();
+}
+function fmtP(p) {
+  if (p == null || !isFinite(p)) return '—';
+  const a = Math.abs(p), d = a >= 10000 ? 0 : a >= 1 ? 2 : a >= 0.01 ? 4 : 6;
+  return p.toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+}
+function fmtV(v) { v = +v || 0; const a = Math.abs(v); return a >= 1e9 ? (v / 1e9).toFixed(2) + 'B' : a >= 1e6 ? (v / 1e6).toFixed(2) + 'M' : a >= 1e3 ? (v / 1e3).toFixed(2) + 'K' : v.toFixed(a >= 10 ? 0 : 2); }
+function niceStep(r) {
+  const e = Math.pow(10, Math.floor(Math.log10(r))), f = r / e;
+  return (f < 1.5 ? 1 : f < 3 ? 2 : f < 7 ? 5 : 10) * e;
+}
+const fDay = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short' });
+const fHM = new Intl.DateTimeFormat('es-MX', { hour: '2-digit', minute: '2-digit', hour12: false });
+const fMon = new Intl.DateTimeFormat('es-MX', { month: 'short', year: '2-digit' });
+const fFull = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false });
+const fFullD = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric' });
+// Velas de 1D o más: se muestran en UTC (así las fecha el exchange)
+const fDayU = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+const fMonU = new Intl.DateTimeFormat('es-MX', { month: 'short', year: '2-digit', timeZone: 'UTC' });
+const fFullDU = new Intl.DateTimeFormat('es-MX', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' });
+
+function nextClose(t) {
+  const tf = curTF();
+  if (tf.id === '1M' || tf.id === '3M') { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + (tf.id === '3M' ? 3 : 1), 1); }
+  return t + tf.dur;
+}
+function countdown(ms) {
+  if (ms <= 0) return '';
+  const s = Math.floor(ms / 1000), d = Math.floor(s / 86400), h = Math.floor(s % 86400 / 3600), m = Math.floor(s % 3600 / 60), ss = s % 60;
+  const p = n => String(n).padStart(2, '0');
+  return d ? `${d}d ${p(h)}:${p(m)}` : h ? `${p(h)}:${p(m)}:${p(ss)}` : `${p(m)}:${p(ss)}`;
+}
+function textOn(bg) {
+  const m = /^#?([0-9a-f]{6})$/i.exec(bg || ''); if (!m) return '#fff';
+  const n = parseInt(m[1], 16), r = n >> 16 & 255, g = n >> 8 & 255, b = n & 255;
+  return (0.299 * r + 0.587 * g + 0.114 * b) > 150 ? '#000' : '#fff';
+}
+function axisBox(y, bg, lines) {
+  const hgt = 16 * lines.length + 2;
+  ctx.fillStyle = bg; ctx.fillRect(Wd - AX, y - 9, AX, hgt);
+  ctx.fillStyle = textOn(bg); ctx.textAlign = 'left';
+  lines.forEach((t, k) => ctx.fillText(t, Wd - AX + 6, y + 4 + k * 16));
+}
+
+function draw() {
+  rq = false;
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  ctx.fillStyle = '#131722'; ctx.fillRect(0, 0, Wd, Ht);
+  ctx.font = '11px -apple-system,BlinkMacSystemFont,Roboto,sans-serif'; ctx.textBaseline = 'alphabetic';
+  const g = geom();
+  latestBtn.style.display = view.scroll > 3 ? 'block' : 'none';
+  latestBtn.style.bottom = 'auto'; latestBtn.style.top = (g.ph - 36) + 'px';
+  $('#autoBtn').style.bottom = 'auto'; $('#autoBtn').style.top = (g.ph - 70) + 'px';
+  $('#autoBtn').style.display = view.auto ? 'none' : 'block';
+  updTools();
+  if (!g.n) { legend.innerHTML = ''; return; }
+  const i0 = Math.max(0, Math.floor(g.right - g.pw / view.barW) - 1), i1 = Math.min(g.n - 1, Math.ceil(g.right));
+  const tf = curTF(), daily = !tf.dur || tf.dur >= D;
+
+  // rango de precios visible
+  let lo = Infinity, hi = -Infinity;
+  for (let i = i0; i <= i1; i++) {
+    const c = candles[i]; if (c.l < lo) lo = c.l; if (c.h > hi) hi = c.h;
+    for (const v of indVals) if (v && v[i] != null) { if (v[i] < lo) lo = v[i]; if (v[i] > hi) hi = v[i]; }
+    if (ext.bb && ext.bb.u[i] != null) { if (ext.bb.l[i] < lo) lo = ext.bb.l[i]; if (ext.bb.u[i] > hi) hi = ext.bb.u[i]; }
+  }
+  const last = candles[g.n - 1];
+  if (!isFinite(lo)) { lo = last.c * 0.98; hi = last.c * 1.02; }
+  if (hi === lo) { hi += hi * 0.01 || 1; lo -= lo * 0.01 || 1; }
+  const pad = (hi - lo) * 0.07; lo -= pad; hi += pad;
+  if (view.auto) { view.lo = lo; view.hi = hi; } else { lo = view.lo; hi = view.hi; }
+  const top = 6, ph = g.ph - top - 2;
+  const y = p => top + (hi - p) / (hi - lo) * ph;
+  const pAt = yy => hi - (yy - top) / ph * (hi - lo);
+  sc = { lo, hi, top, ph };
+
+  // rejilla de precios
+  const step = niceStep((hi - lo) / Math.max(3, Math.floor(g.ph / 55)));
+  ctx.textAlign = 'left';
+  for (let p = Math.ceil(lo / step) * step; p <= hi; p += step) {
+    const yy = Math.round(y(p)) + 0.5;
+    ctx.strokeStyle = '#1f2433'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(g.pw, yy); ctx.stroke();
+    ctx.fillStyle = '#b2b5be'; ctx.fillText(fmtP(p), g.pw + 6, yy + 4);
+  }
+  // rejilla de tiempo
+  const every = Math.max(1, Math.ceil(80 / view.barW));
+  let prevDay = null;
+  ctx.textAlign = 'center';
+  for (let i = Math.max(0, i0 - (i0 % every)); i <= i1; i += every) {
+    const x = Math.round(xOf(i, g)) + 0.5; if (x < 0 || x > g.pw) continue;
+    ctx.strokeStyle = '#1f2433'; ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, g.full); ctx.stroke();
+    const t = candles[i].t; let lab;
+    if (!tf.dur) lab = fMonU.format(t);
+    else if (daily) lab = fDayU.format(t);
+    else { const dk = new Date(t).toDateString(); lab = dk !== prevDay ? fDay.format(t) : fHM.format(t); prevDay = dk; }
+    ctx.fillStyle = '#b2b5be'; ctx.fillText(lab, x, g.full + 16);
+  }
+
+  ctx.save(); ctx.beginPath(); ctx.rect(0, 0, g.pw, g.ph); ctx.clip();
+  // volumen
+  let bw0 = Math.max(1, Math.floor(view.barW * 0.72)); if (bw0 % 2 === 0) bw0 = Math.max(1, bw0 - 1);
+  if (S.ext.vol.on) {
+    let vmax = 0; for (let i = i0; i <= i1; i++) vmax = Math.max(vmax, candles[i].v || 0);
+    if (vmax > 0) {
+      const vh = g.ph * 0.2;
+      for (let i = i0; i <= i1; i++) {
+        const c = candles[i], hgt = (c.v || 0) / vmax * vh, x = Math.round(xOf(i, g));
+        ctx.fillStyle = c.c >= c.o ? 'rgba(38,166,154,.35)' : 'rgba(239,83,80,.35)';
+        ctx.fillRect(x - (bw0 - 1) / 2, g.ph - hgt, bw0, hgt);
+      }
+    }
+  }
+  // bandas de bollinger
+  if (ext.bb) {
+    const B = ext.bb; ctx.fillStyle = 'rgba(41,182,246,.07)'; ctx.beginPath(); let st = false, last_ = null;
+    for (let i = i0; i <= i1; i++) { if (B.u[i] == null) continue; const x = xOf(i, g) + 0.5; if (st) ctx.lineTo(x, y(B.u[i])); else { ctx.moveTo(x, y(B.u[i])); st = true; } last_ = i; }
+    for (let i = last_ == null ? -1 : last_; i >= i0; i--) { if (B.l[i] == null) break; ctx.lineTo(xOf(i, g) + 0.5, y(B.l[i])); }
+    if (st) ctx.fill();
+    [[B.u, '#29b6f6', []], [B.l, '#29b6f6', []], [B.m, '#ff7043', [4, 3]]].forEach(([v, col, dash]) => {
+      ctx.strokeStyle = col; ctx.lineWidth = 1; ctx.setLineDash(dash); ctx.beginPath(); let s2 = false;
+      for (let i = i0; i <= i1; i++) { if (v[i] == null) continue; const x = xOf(i, g) + 0.5, yy = y(v[i]); if (s2) ctx.lineTo(x, yy); else { ctx.moveTo(x, yy); s2 = true; } }
+      ctx.stroke(); ctx.setLineDash([]);
+    });
+  }
+  // velas
+  let bw = Math.max(1, Math.floor(view.barW * 0.72)); if (bw % 2 === 0) bw = Math.max(1, bw - 1);
+  for (let i = i0; i <= i1; i++) {
+    const c = candles[i], x = Math.round(xOf(i, g)), col = c.c >= c.o ? UP : DN;
+    ctx.fillStyle = col;
+    const yh = y(c.h), yl = y(c.l); ctx.fillRect(x, Math.round(yh), 1, Math.max(1, Math.round(yl - yh)));
+    const yo = y(c.o), yc = y(c.c), bt = Math.round(Math.min(yo, yc));
+    ctx.fillRect(x - (bw - 1) / 2, bt, bw, Math.max(1, Math.round(Math.max(yo, yc)) - bt));
+  }
+  // medias móviles
+  ctx.lineJoin = 'round';
+  S.inds.forEach((d, k) => {
+    const v = indVals[k]; if (!v) return;
+    ctx.strokeStyle = d.color; ctx.lineWidth = d.w || 1; ctx.beginPath(); let st = false;
+    for (let i = i0; i <= i1; i++) { if (v[i] == null) continue; const x = xOf(i, g) + 0.5, yy = y(v[i]); if (st) ctx.lineTo(x, yy); else { ctx.moveTo(x, yy); st = true; } }
+    ctx.stroke();
+  });
+  // dibujos
+  const ds = drawings();
+  ds.forEach((d, k) => {
+    const isSel = k === sel; ctx.strokeStyle = d.color || LINE_COL; ctx.lineWidth = isSel ? 2.5 : 1.5;
+    if (d.type === 'h') {
+      const yy = Math.round(y(d.p)) + 0.5;
+      ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(g.pw, yy); ctx.stroke();
+      if (isSel) handle(g.pw / 2, yy);
+    } else {
+      const ax = xT(d.a.t), ay = y(d.a.p), bx = xT(d.b.t), by = y(d.b.p);
+      ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(bx, by); ctx.stroke();
+      if (isSel) { handle(ax, ay); handle(bx, by); }
+    }
+  });
+  if (pendingA) {
+    const ax = xT(pendingA.t), ay = y(pendingA.p);
+    if (cross) { ctx.setLineDash([5, 4]); ctx.strokeStyle = LINE_COL; ctx.lineWidth = 1.5; ctx.beginPath(); ctx.moveTo(ax, ay); ctx.lineTo(cross.x, cross.y); ctx.stroke(); ctx.setLineDash([]); }
+    handle(ax, ay);
+  }
+  // línea del último precio
+  const lastCol = last.c >= last.o ? UP : DN, ly = Math.round(y(last.c)) + 0.5;
+  ctx.setLineDash([2, 3]); ctx.strokeStyle = lastCol; ctx.lineWidth = 1;
+  ctx.beginPath(); ctx.moveTo(0, ly); ctx.lineTo(g.pw, ly); ctx.stroke(); ctx.setLineDash([]);
+  // cruz
+  let hi_ = null;
+  if (cross) {
+    hi_ = Math.max(0, Math.min(g.n - 1, Math.round(idxAtF(cross.x, g))));
+    const cx = Math.round(xOf(hi_, g)) + 0.5, cy = Math.round(Math.min(g.ph, Math.max(0, cross.y))) + 0.5;
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = '#787b86';
+    ctx.beginPath(); ctx.moveTo(cx, 0); ctx.lineTo(cx, g.ph); if (cross.y <= g.ph) { ctx.moveTo(0, cy); ctx.lineTo(g.pw, cy); } ctx.stroke(); ctx.setLineDash([]);
+  }
+  ctx.restore();
+
+  // paneles inferiores (RSI, ATR)
+  const pli = hi_ != null ? hi_ : g.n - 1;
+  g.pl.forEach((name, k) => {
+    const pt = g.ph + k * g.paneH, pH = g.paneH, v = ext[name]; if (!v) return;
+    let plo, phi;
+    if (name === 'rsi') { plo = 0; phi = 100; }
+    else { plo = Infinity; phi = -Infinity; for (let i = i0; i <= i1; i++) if (v[i] != null) { plo = Math.min(plo, v[i]); phi = Math.max(phi, v[i]); } if (!isFinite(plo)) { plo = 0; phi = 1; } const pd = (phi - plo) * 0.1 || phi * 0.1 || 1; plo -= pd; phi += pd; }
+    const py = val => pt + 4 + (phi - val) / (phi - plo) * (pH - 8);
+    ctx.strokeStyle = '#2a2e39'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(0, pt + 0.5); ctx.lineTo(Wd, pt + 0.5); ctx.stroke();
+    ctx.save(); ctx.beginPath(); ctx.rect(0, pt + 1, g.pw, pH - 1); ctx.clip();
+    if (name === 'rsi') {
+      ctx.fillStyle = 'rgba(126,87,194,.1)'; ctx.fillRect(0, py(70), g.pw, py(30) - py(70));
+      ctx.setLineDash([4, 4]); ctx.strokeStyle = '#787b86';
+      [70, 50, 30].forEach(l => { const yy = Math.round(py(l)) + 0.5; ctx.beginPath(); ctx.moveTo(0, yy); ctx.lineTo(g.pw, yy); ctx.stroke(); });
+      ctx.setLineDash([]);
+    }
+    const col = name === 'rsi' ? '#7e57c2' : '#ef6c00';
+    ctx.strokeStyle = col; ctx.lineWidth = 1.5; ctx.beginPath(); let st = false;
+    for (let i = i0; i <= i1; i++) { if (v[i] == null) continue; const x = xOf(i, g) + 0.5, yy = py(v[i]); if (st) ctx.lineTo(x, yy); else { ctx.moveTo(x, yy); st = true; } }
+    ctx.stroke();
+    if (cross && hi_ != null) { const cx = Math.round(xOf(hi_, g)) + 0.5; ctx.setLineDash([4, 4]); ctx.strokeStyle = '#787b86'; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(cx, pt); ctx.lineTo(cx, pt + pH); ctx.stroke(); ctx.setLineDash([]); }
+    ctx.restore();
+    ctx.textAlign = 'left'; ctx.fillStyle = '#787b86';
+    if (name === 'rsi') { ctx.fillText('70', g.pw + 6, py(70) + 4); ctx.fillText('30', g.pw + 6, py(30) + 4); }
+    else { ctx.fillText(fmtP(phi), g.pw + 6, pt + 14); ctx.fillText(fmtP(plo), g.pw + 6, pt + pH - 4); }
+    const lv = v[g.n - 1], cv_ = v[pli];
+    if (lv != null) axisBox(Math.max(pt + 10, Math.min(pt + pH - 10, py(lv))), col, [name === 'rsi' ? lv.toFixed(2) : fmtP(lv)]);
+    ctx.textAlign = 'left'; ctx.fillStyle = col; ctx.font = '11.5px -apple-system,BlinkMacSystemFont,Roboto,sans-serif';
+    ctx.fillText((name === 'rsi' ? `RSI ${S.ext.rsi.p}  ` : `ATR ${S.ext.atr.p}  `) + (cv_ == null ? '—' : name === 'rsi' ? cv_.toFixed(2) : fmtP(cv_)), 8, pt + 15);
+    ctx.font = '11px -apple-system,BlinkMacSystemFont,Roboto,sans-serif';
+  });
+
+  // ejes
+  ctx.strokeStyle = '#2a2e39'; ctx.beginPath(); ctx.moveTo(g.pw + 0.5, 0); ctx.lineTo(g.pw + 0.5, Ht); ctx.moveTo(0, g.ph + 0.5); ctx.lineTo(Wd, g.ph + 0.5); ctx.moveTo(0, g.full + 0.5); ctx.lineTo(Wd, g.full + 0.5); ctx.stroke();
+  const cd = countdown(nextClose(last.t) - Date.now());
+  // etiquetas del eje sin encimarse: el precio actual se queda fijo y las demás se recorren
+  const lyBox = Math.max(10, Math.min(g.ph - (cd ? 26 : 10), ly));
+  const main = { top: lyBox - 9, hgt: (cd ? 2 : 1) * 16 + 2, bg: lastCol, lines: cd ? [fmtP(last.c), cd] : [fmtP(last.c)] };
+  const labs = [];
+  ds.forEach(d => { if (d.type === 'h') { const yy = y(d.p); if (yy > 0 && yy < g.ph) labs.push({ yy, top: yy - 9, hgt: 18, bg: d.color || LINE_COL, lines: [fmtP(d.p)] }); } });
+  const mid = main.top + main.hgt / 2;
+  const up = labs.filter(l => l.yy < mid).sort((a, b) => b.yy - a.yy), dn = labs.filter(l => l.yy >= mid).sort((a, b) => a.yy - b.yy);
+  let lim = main.top; up.forEach(l => { l.top = Math.min(l.top, lim - l.hgt - 1); lim = l.top; });
+  lim = main.top + main.hgt; dn.forEach(l => { l.top = Math.max(l.top, lim + 1); lim = l.top + l.hgt; });
+  ctx.lineWidth = 1;
+  labs.forEach(l => {
+    if (Math.abs(l.top + 9 - l.yy) > 1) { ctx.strokeStyle = l.bg; ctx.beginPath(); ctx.moveTo(g.pw - 8, l.yy); ctx.lineTo(g.pw, l.top + 9); ctx.stroke(); }
+    axisBox(l.top + 9, l.bg, l.lines);
+  });
+  axisBox(main.top + 9, main.bg, main.lines);
+  if (cross && hi_ != null) {
+    const cy = Math.min(g.ph, Math.max(0, cross.y));
+    if (cross.y <= g.ph) axisBox(cy, '#363a45', [fmtP(pAt(cy))]);
+    const t = candles[hi_].t, lab = !tf.dur ? fMonU.format(t) : daily ? fFullDU.format(t) : fFull.format(t);
+    const cx = xOf(hi_, g), tw = ctx.measureText(lab).width + 12;
+    ctx.fillStyle = '#363a45'; ctx.fillRect(Math.max(0, Math.min(g.pw - tw, cx - tw / 2)), g.full + 1, tw, AY - 2);
+    ctx.fillStyle = '#fff'; ctx.textAlign = 'center'; ctx.fillText(lab, Math.max(tw / 2, Math.min(g.pw - tw / 2, cx)), g.full + 16);
+  }
+
+  // leyenda
+  const li = hi_ != null ? hi_ : g.n - 1, c = candles[li], prev = candles[li - 1];
+  const chg = prev ? (c.c - prev.c) / prev.c * 100 : 0, cc = c.c >= c.o ? UP : DN;
+  const srcL = S.market === 'crypto' ? (activeSrc === 'bitstamp' ? ' · Bitstamp' : ' · Binance') : '';
+  const cdl = countdown(nextClose(last.t) - Date.now());
+  let html = `<div><b>${(S.market === 'crypto' && activeSrc === 'binance') ? binSym() : curSym()} · ${tf.label}${srcL}</b>${cdl ? ` <span style="color:#9598a1">· cierra en <b style="color:#fff">${cdl}</b></span>` : ''}</div><div class="ohlc" style="color:${cc}">` +
+    `<span>A ${fmtP(c.o)}</span><span>Max ${fmtP(c.h)}</span><span>Min ${fmtP(c.l)}</span><span>C ${fmtP(c.c)}</span><span>${chg >= 0 ? '+' : ''}${chg.toFixed(2)}%</span></div><div class="inds">`;
+  if (!S.hideInds && S.ext.vol.on) html += `<span style="color:#9598a1">Vol ${fmtV(c.v)}</span>`;
+  if (!S.hideInds && ext.bb) html += `<span style="color:#29b6f6">BB ${S.ext.bb.p} ${fmtP(ext.bb.u[li])} / ${fmtP(ext.bb.l[li])}</span>`;
+  if (!S.hideInds) S.inds.forEach((d, k) => { const v = indVals[k]; if (v) html += `<span style="color:${d.color}">${d.type} ${d.p} ${fmtP(v[li])}</span>`; });
+  legend.innerHTML = html + '</div>';
+}
+
+// ---------- Dibujos ----------
+const LINE_COL = '#00e5ff';
+let tool = null, pendingA = null, sel = null, trashArm = 0, lastAxisTap = 0;
+const dKey = () => S.market + ':' + curSym();
+function drawings() { S.drawings = S.drawings || {}; return S.drawings[dKey()] || (S.drawings[dKey()] = []); }
+function stepAt(i) {
+  const n = candles.length; if (n < 2) return curTF().dur || D;
+  const k = Math.max(1, Math.min(i, n - 1)); return candles[k].t - candles[k - 1].t;
+}
+function idxOfT(t) {
+  const n = candles.length; if (!n) return 0;
+  if (t <= candles[0].t) return (t - candles[0].t) / stepAt(1);
+  const L = candles[n - 1].t; if (t >= L) return n - 1 + (t - L) / (curTF().dur || stepAt(n - 1));
+  let a = 0, b = n - 1; while (b - a > 1) { const m = (a + b) >> 1; if (candles[m].t <= t) a = m; else b = m; }
+  return a + (t - candles[a].t) / (candles[b].t - candles[a].t);
+}
+function tOfIdx(f) {
+  const n = candles.length; if (!n) return 0;
+  if (f <= 0) return candles[0].t + f * stepAt(1);
+  if (f >= n - 1) return candles[n - 1].t + (f - (n - 1)) * (curTF().dur || stepAt(n - 1));
+  const a = Math.floor(f); return candles[a].t + (f - a) * (candles[a + 1].t - candles[a].t);
+}
+const yP = p => sc.top + (sc.hi - p) / (sc.hi - sc.lo) * sc.ph;
+const pY = yy => sc.hi - (yy - sc.top) / sc.ph * (sc.hi - sc.lo);
+const xT = t => xOf(idxOfT(t), geom());
+const tX = x => tOfIdx(idxAtF(x, geom()));
+function handle(x, yy) { ctx.fillStyle = '#131722'; ctx.strokeStyle = LINE_COL; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(x, yy, 6, 0, 7); ctx.fill(); ctx.stroke(); }
+function distSeg(px, py, ax, ay, bx, by) {
+  const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy;
+  let t = L ? ((px - ax) * dx + (py - ay) * dy) / L : 0; t = Math.max(0, Math.min(1, t));
+  return Math.hypot(px - ax - t * dx, py - ay - t * dy);
+}
+function hitTest(p) {
+  if (!sc) return null; const ds = drawings();
+  for (let i = ds.length - 1; i >= 0; i--) {
+    const d = ds[i];
+    if (d.type === 'h') { if (Math.abs(yP(d.p) - p.y) < 14) return { i, part: 'body' }; continue; }
+    const ax = xT(d.a.t), ay = yP(d.a.p), bx = xT(d.b.t), by = yP(d.b.p);
+    if (Math.hypot(p.x - ax, p.y - ay) < 20) return { i, part: 'a' };
+    if (Math.hypot(p.x - bx, p.y - by) < 20) return { i, part: 'b' };
+    if (distSeg(p.x, p.y, ax, ay, bx, by) < 12) return { i, part: 'body' };
+  }
+  return null;
+}
+function moveObj(p) {
+  const d = drawings()[drag.hit.i], o = drag.orig; if (!d) return;
+  const dp = pY(p.y) - pY(drag.y);
+  if (d.type === 'h') { d.p = o.p + dp; return; }
+  if (drag.hit.part === 'a') d.a = { t: tX(p.x), p: pY(p.y) };
+  else if (drag.hit.part === 'b') d.b = { t: tX(p.x), p: pY(p.y) };
+  else {
+    const di = (p.x - drag.x) / view.barW;
+    d.a = { t: tOfIdx(idxOfT(o.a.t) + di), p: o.a.p + dp };
+    d.b = { t: tOfIdx(idxOfT(o.b.t) + di), p: o.b.p + dp };
+  }
+}
+function placeTool(p) {
+  if (!sc || !candles.length) return;
+  const x = Math.min(p.x, geom().pw - 1), pt = { t: tX(x), p: pY(p.y) };
+  if (tool === 'h') { drawings().push({ type: 'h', p: pt.p, color: LINE_COL }); sel = drawings().length - 1; tool = null; }
+  else if (tool === 't') {
+    if (!pendingA) pendingA = pt;
+    else { drawings().push({ type: 't', a: pendingA, b: pt, color: LINE_COL }); sel = drawings().length - 1; pendingA = null; tool = null; cross = null; }
+  }
+  save(); req();
+}
+function updTools() {
+  $('#tH').classList.toggle('on', tool === 'h');
+  $('#tT').classList.toggle('on', tool === 't');
+  $('#tEye').classList.toggle('off', !!S.hideInds);
+  $('#tDel').classList.toggle('on', sel != null || !!trashArm);
+  $('#tEdit').style.display = sel != null ? 'flex' : 'none';
+  const t = tool === 'h' ? 'Toca el precio donde va la línea'
+    : tool === 't' ? (pendingA ? 'Ahora toca el segundo punto' : 'Toca el primer punto de la línea')
+    : trashArm ? 'Toca el bote otra vez para borrar todas'
+    : sel != null ? 'Línea seleccionada: ya puedes moverla' : '';
+  const h = $('#hint'); if (h.textContent !== t) h.textContent = t; h.style.display = t ? 'block' : 'none';
+}
+$('#tH').onclick = () => { tool = tool === 'h' ? null : 'h'; pendingA = null; sel = null; req(); };
+$('#tT').onclick = () => { tool = tool === 't' ? null : 't'; pendingA = null; sel = null; req(); };
+$('#tEye').onclick = () => { S.hideInds = !S.hideInds; save(); req(); };
+$('#tFx').onclick = () => $('#gear').click();
+$('#tDel').onclick = () => {
+  const ds = drawings();
+  if (sel != null) { ds.splice(sel, 1); sel = null; trashArm = 0; }
+  else if (ds.length) {
+    if (trashArm) { ds.length = 0; trashArm = 0; }
+    else { trashArm = Date.now(); setTimeout(() => { trashArm = 0; req(); }, 3000); }
+  }
+  save(); req();
+};
+$('#autoBtn').onclick = () => { view.auto = true; req(); };
+const pad2 = n => String(n).padStart(2, '0');
+const toLocalInput = t => { const d = new Date(t); return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`; };
+const numIn = v => parseFloat(String(v).replace(/[,\s$]/g, ''));
+const pIn = (id, label, v) => `<label class="fld">${label}<input id="${id}" type="text" inputmode="decimal" value="${v}"></label>`;
+$('#tEdit').onclick = () => {
+  const d = drawings()[sel]; if (!d) return;
+  const raw = v => (+v).toFixed(Math.abs(v) >= 1 ? 2 : 6);
+  let h = '';
+  if (d.type === 'h') { $('#lmTitle').textContent = 'Línea horizontal'; h = pIn('lmP', 'Precio exacto', raw(d.p)); }
+  else {
+    $('#lmTitle').textContent = 'Línea inclinada';
+    h = `<label class="fld">Punto 1 · fecha y hora<input id="lmTa" type="datetime-local" value="${toLocalInput(d.a.t)}"></label>` + pIn('lmPa', 'Punto 1 · precio', raw(d.a.p)) +
+        `<label class="fld">Punto 2 · fecha y hora<input id="lmTb" type="datetime-local" value="${toLocalInput(d.b.t)}"></label>` + pIn('lmPb', 'Punto 2 · precio', raw(d.b.p));
+  }
+  h += `<label class="fld">Color<input id="lmC" type="color" value="${d.color || LINE_COL}" style="height:40px;padding:2px"></label>`;
+  $('#lmFields').innerHTML = h; $('#lineModal').hidden = false;
+};
+$('#lmCancel').onclick = () => { $('#lineModal').hidden = true; };
+$('#lineModal').addEventListener('click', e => { if (e.target.id === 'lineModal') $('#lineModal').hidden = true; });
+$('#lmFields').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#lmOk').click(); } });
+$('#lmOk').onclick = () => {
+  const d = drawings()[sel]; if (!d) { $('#lineModal').hidden = true; return; }
+  if (d.type === 'h') { const v = numIn($('#lmP').value); if (isFinite(v)) d.p = v; }
+  else {
+    const ta = new Date($('#lmTa').value).getTime(), tb = new Date($('#lmTb').value).getTime();
+    const pa = numIn($('#lmPa').value), pb = numIn($('#lmPb').value);
+    if (isFinite(ta)) d.a.t = ta; if (isFinite(pa)) d.a.p = pa;
+    if (isFinite(tb)) d.b.t = tb; if (isFinite(pb)) d.b.p = pb;
+  }
+  d.color = $('#lmC').value || d.color;
+  save(); $('#lineModal').hidden = true; req();
+};
+$('#bkCopy').onclick = () => {
+  const txt = JSON.stringify({ v: 1, inds: S.inds, ext: S.ext, drawings: S.drawings || {} });
+  $('#bkText').value = txt; $('#bkText').select();
+  const ok = () => { $('#bkMsg').textContent = 'Copiado. Pégalo en tus Notas para guardarlo.'; };
+  try { navigator.clipboard.writeText(txt).then(ok, () => { $('#bkMsg').textContent = 'Selecciona el texto de arriba y cópialo.'; }); }
+  catch (e) { $('#bkMsg').textContent = 'Selecciona el texto de arriba y cópialo.'; }
+};
+$('#bkLoad').onclick = () => {
+  try {
+    const j = JSON.parse($('#bkText').value.trim());
+    if (!j || typeof j !== 'object' || (!j.drawings && !j.inds)) throw 0;
+    if (Array.isArray(j.inds) && j.inds.length) S.inds = j.inds;
+    if (j.drawings && typeof j.drawings === 'object') S.drawings = j.drawings;
+    if (j.ext && typeof j.ext === 'object') S.ext = Object.assign(JSON.parse(JSON.stringify(DEFAULT_EXT)), j.ext);
+    sel = null; save(); renderInds(); computeInds(); req();
+    $('#bkMsg').textContent = 'Listo, respaldo restaurado.';
+  } catch (e) { $('#bkMsg').textContent = 'Ese texto no es un respaldo válido.'; }
+};
+try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch (e) {}
+
+// ---------- Gestos ----------
+const ptrs = new Map(); let drag = null, pinch = null;
+const pos = e => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+cv.addEventListener('pointerdown', e => {
+  cv.setPointerCapture(e.pointerId); const p = pos(e); ptrs.set(e.pointerId, p);
+  if (ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()];
+    pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, bw: view.barW, mx: (a.x + b.x) / 2 }; drag = null; return;
+  }
+  if (ptrs.size !== 1 || !sc) return;
+  const d0 = { x: p.x, y: p.y, s: view.scroll, moved: false, type: e.pointerType, lo: sc.lo, hi: sc.hi };
+  const gg = geom(), inMain = p.y <= gg.ph;
+  if (tool && inMain) { drag = Object.assign(d0, { mode: 'tool' }); return; }
+  if (p.x > gg.pw && inMain) { drag = Object.assign(d0, { mode: 'axis' }); return; }
+  const h = inMain ? hitTest(p) : null;
+  if (h && h.i === sel) { drag = Object.assign(d0, { mode: 'obj', hit: h, orig: JSON.parse(JSON.stringify(drawings()[h.i])) }); return; }
+  drag = Object.assign(d0, { mode: 'pan', hit: h });
+});
+cv.addEventListener('pointermove', e => {
+  const p = pos(e);
+  if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, p);
+  if (pinch && ptrs.size === 2) {
+    const [a, b] = [...ptrs.values()], d = Math.hypot(a.x - b.x, a.y - b.y) || 1;
+    zoomAt(pinch.mx, pinch.bw * d / pinch.d); return;
+  }
+  if (drag && ptrs.size === 1) {
+    const dx = p.x - drag.x, dy = p.y - drag.y;
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) drag.moved = true;
+    if (drag.mode === 'tool') { if (pendingA) { cross = p; req(); } return; }
+    if (!drag.moved) return;
+    if (drag.mode === 'axis') {
+      const f = Math.exp(dy * 0.006), c = (drag.lo + drag.hi) / 2, hr = (drag.hi - drag.lo) / 2 * f;
+      view.auto = false; view.lo = c - hr; view.hi = c + hr; req();
+    } else if (drag.mode === 'pan') {
+      view.scroll = drag.s + dx / view.barW;
+      if (!view.auto) { const dp = dy * (drag.hi - drag.lo) / sc.ph; view.lo = drag.lo + dp; view.hi = drag.hi + dp; }
+      cross = drag.type === 'mouse' ? p : null; req();
+    } else if (drag.mode === 'obj') { moveObj(p); req(); }
+    return;
+  }
+  if (e.pointerType === 'mouse') { cross = p; req(); }
+});
+const endPtr = e => {
+  const p = pos(e);
+  if (drag && ptrs.size === 1) {
+    if (drag.mode === 'tool') { if (e.type === 'pointerup') placeTool(p); }
+    else if (drag.mode === 'obj') { if (drag.moved) save(); }
+    else if (!drag.moved && drag.mode === 'axis') {
+      const now = Date.now(); if (now - lastAxisTap < 400) { view.auto = true; req(); } lastAxisTap = now;
+    } else if (!drag.moved && drag.mode === 'pan') {
+      if (drag.hit) sel = drag.hit.i;
+      else if (sel != null) sel = null;
+      else if (drag.type !== 'mouse') cross = cross ? null : p;
+      req();
+    }
+  }
+  ptrs.delete(e.pointerId);
+  if (ptrs.size < 2) pinch = null;
+  if (ptrs.size === 0) drag = null;
+  else if (ptrs.size === 1) { const q = [...ptrs.values()][0]; drag = { x: q.x, y: q.y, s: view.scroll, moved: true, type: e.pointerType, mode: 'pan', lo: sc.lo, hi: sc.hi }; }
+};
+cv.addEventListener('pointerup', endPtr);
+cv.addEventListener('pointercancel', endPtr);
+cv.addEventListener('pointerleave', e => { if (e.pointerType === 'mouse' && !ptrs.size && !pendingA) { cross = null; req(); } });
+cv.addEventListener('wheel', e => {
+  e.preventDefault();
+  if (Math.abs(e.deltaX) > Math.abs(e.deltaY)) { view.scroll -= e.deltaX / view.barW; req(); }
+  else if (sc && pos(e).x > geom().pw) {
+    const f = Math.exp(e.deltaY * 0.002), c = (sc.lo + sc.hi) / 2, hr = (sc.hi - sc.lo) / 2 * f;
+    view.auto = false; view.lo = c - hr; view.hi = c + hr; req();
+  }
+  else zoomAt(pos(e).x, view.barW * Math.exp(-e.deltaY * 0.0015));
+}, { passive: false });
+cv.addEventListener('dblclick', e => { if (pos(e).x > geom().pw) view.auto = true; else { view.barW = 8; view.scroll = 0; } req(); });
+latestBtn.onclick = () => { view.scroll = 0; req(); };
+
+// ---------- Interfaz ----------
+function renderTop() {
+  document.querySelectorAll('#mkt button').forEach(b => b.classList.toggle('on', b.dataset.m === S.market));
+  $('#sym').value = curSym();
+  $('#syms').innerHTML = SYMS[S.market].map(s => `<option value="${s}">`).join('');
+  $('#tfs').innerHTML = TFS.map(t => `<button data-tf="${t.id}" class="${t.id === S.tf ? 'on' : ''}">${t.label}</button>`).join('');
+}
+$('#mkt').onclick = e => {
+  const m = e.target.dataset && e.target.dataset.m; if (!m || m === S.market) return;
+  S.market = m; save(); renderTop(); loadData();
+};
+$('#tfs').onclick = e => {
+  const id = e.target.dataset && e.target.dataset.tf; if (!id || id === S.tf) return;
+  S.tf = id; save(); renderTop(); loadData();
+};
+function applySym() {
+  let v = $('#sym').value.trim().toUpperCase().replace(/[^A-Z0-9.\-/]/g, '');
+  if (!v) { $('#sym').value = curSym(); return; }
+  if (S.market === 'crypto') { v = v.replace('/', ''); if (v.length <= 5 && !/USDT?$/.test(v)) v += 'USD'; }
+  if (v === curSym()) { $('#sym').value = v; return; }
+  if (S.market === 'crypto') S.symCrypto = v; else S.symStock = v;
+  save(); renderTop(); loadData();
+}
+$('#sym').addEventListener('change', applySym);
+$('#sym').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('#sym').blur(); applySym(); } });
+
+// ajustes
+function renderInds() {
+  $('#indList').innerHTML = S.inds.map((d, k) => `
+    <div class="ind" data-k="${k}">
+      <input type="checkbox" data-f="on" ${d.on ? 'checked' : ''}>
+      <select data-f="type"><option ${d.type === 'EMA' ? 'selected' : ''}>EMA</option><option ${d.type === 'SMA' ? 'selected' : ''}>SMA</option></select>
+      <input type="number" data-f="p" min="1" max="1000" value="${d.p}">
+      <input type="color" data-f="color" value="${d.color}">
+      <select data-f="w">${[1, 2, 3].map(w => `<option value="${w}" ${d.w == w ? 'selected' : ''}>${w}px</option>`).join('')}</select>
+      <button class="del" data-del="${k}">✕</button>
+    </div>`).join('');
+}
+$('#indList').addEventListener('input', e => {
+  const row = e.target.closest('.ind'), f = e.target.dataset.f; if (!row || !f) return;
+  const d = S.inds[+row.dataset.k];
+  if (f === 'on') d.on = e.target.checked;
+  else if (f === 'p') d.p = Math.max(1, Math.min(1000, parseInt(e.target.value, 10) || 1));
+  else if (f === 'w') d.w = +e.target.value;
+  else d[f] = e.target.value;
+  save(); computeInds(); req();
+});
+$('#indList').addEventListener('click', e => {
+  const k = e.target.dataset && e.target.dataset.del; if (k == null) return;
+  S.inds.splice(+k, 1); save(); renderInds(); computeInds(); req();
+});
+$('#addInd').onclick = () => { S.inds.push({ on: true, type: 'EMA', p: 20, color: '#00bcd4', w: 1 }); save(); renderInds(); computeInds(); req(); };
+$('#resetInd').onclick = () => { S.inds = JSON.parse(JSON.stringify(DEFAULT_INDS)); save(); renderInds(); computeInds(); req(); };
+function renderExt() { document.querySelectorAll('#extList [data-x]').forEach(el => { const [k, f] = el.dataset.x.split('.'); if (el.type === 'checkbox') el.checked = !!S.ext[k][f]; else el.value = S.ext[k][f]; }); }
+$('#extList').addEventListener('input', e => {
+  const el = e.target, x = el.dataset && el.dataset.x; if (!x) return;
+  const [k, f] = x.split('.');
+  if (el.type === 'checkbox') S.ext[k][f] = el.checked;
+  else { const v = parseFloat(el.value); if (isFinite(v) && v > 0) S.ext[k][f] = f === 'm' ? v : Math.round(v); }
+  save(); computeInds(); req();
+});
+$('#gear').onclick = () => { renderInds(); renderExt(); $('#tdKey').value = S.tdKey || ''; $('#srcSel').value = S.src || 'bitstamp'; $('#modal').hidden = false; };
+$('#closeModal').onclick = () => {
+  const k = $('#tdKey').value.trim(), changed = k !== S.tdKey; S.tdKey = k;
+  const src = $('#srcSel').value, srcChanged = src !== S.src; S.src = src; save();
+  $('#modal').hidden = true;
+  if ((changed && S.market === 'stock') || (srcChanged && S.market === 'crypto')) loadData();
+};
+$('#modal').addEventListener('click', e => { if (e.target.id === 'modal') $('#closeModal').click(); });
+
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden && S.market === 'crypto' && (!live.ws || live.ws.readyState > 1)) loadData();
+});
+window.addEventListener('resize', resize);
+if (window.ResizeObserver) new ResizeObserver(resize).observe(wrap);
+setInterval(() => { if (candles.length) req(); }, 1000); // cuenta regresiva
+
+S.inds = (S.inds && S.inds.length ? S.inds : DEFAULT_INDS).map(d => Object.assign({}, d));
+S.ext = Object.assign(JSON.parse(JSON.stringify(DEFAULT_EXT)), S.ext || {});
+// Líneas horizontales pasadas desde TradingView (BTCUSD), se agregan una sola vez
+if (!S.tvLines1) {
+  S.drawings = S.drawings || {};
+  const arr = S.drawings['crypto:BTCUSD'] || (S.drawings['crypto:BTCUSD'] = []);
+  [[89000,'#ffeb3b'],[87000,'#ffffff'],[86400,'#ffeb3b'],[85000,'#ffeb3b'],[84300,'#2962ff'],[84000,'#ffffff'],[83000,'#ffffff'],[82876,'#f23645'],[82200,'#2962ff'],[81276,'#f23645'],[80000,'#ffffff'],[76000,'#ffffff'],[74541,'#e91e63'],[72993,'#ffffff'],[71552,'#ffffff'],[70072,'#ffffff'],[65070,'#ffffff'],[64400,'#ffffff'],[64000,'#ffffff'],[63885,'#ffffff'],[62900,'#ffffff'],[62200,'#ffffff'],[60000,'#ffffff'],[58549,'#ffffff']].forEach(([pr, col]) => {
+    const ex = arr.find(d => d.type === 'h' && Math.abs(d.p - pr) < 1);
+    if (ex) ex.color = col; else arr.push({ type: 'h', p: pr, color: col });
+  });
+  S.tvLines1 = true; save();
+}
+renderTop(); resize(); loadData();
+})();
+</script>
+</body>
+</html>
